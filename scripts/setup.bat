@@ -7,6 +7,9 @@ echo      YouTube 財經報告生成器 - 修復工具
 echo ==========================================
 echo.
 
+:: 切換到專案根目錄
+cd /d "%~dp0\.."
+
 :: 檢查 Python
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -63,8 +66,14 @@ call venv\Scripts\activate.bat
 echo 📦 更新 pip...
 python -m pip install --upgrade pip
 
-:: 創建 requirements.txt 如果不存在
-if not exist "requirements.txt" (
+:: 檢查 requirements.txt 文件
+if exist "config\requirements.txt" (
+    echo 📝 使用現有的 config\requirements.txt...
+    set requirements_file=config\requirements.txt
+) else if exist "scripts\requirements.txt" (
+    echo 📝 使用現有的 scripts\requirements.txt...
+    set requirements_file=scripts\requirements.txt
+) else (
     echo 📝 創建 requirements.txt...
     echo streamlit^>=1.28.0>requirements.txt
     echo google-generativeai^>=0.8.0>>requirements.txt
@@ -74,6 +83,7 @@ if not exist "requirements.txt" (
     echo torchaudio^>=2.0.0>>requirements.txt
     echo numpy^>=1.21.0>>requirements.txt
     echo requests^>=2.25.0>>requirements.txt
+    set requirements_file=requirements.txt
 )
 
 :: 檢查 NVIDIA GPU 並選擇 PyTorch 版本
@@ -85,7 +95,7 @@ if errorlevel 1 (
     set pytorch_install=torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 ) else (
     echo ✅ 檢測到 NVIDIA GPU，安裝 CUDA 支援版本
-    nvidia-smi | findstr "CUDA Version"
+    for /f "tokens=*" %%i in ('nvidia-smi ^| findstr "CUDA Version"') do echo %%i
     set pytorch_install=torch torchaudio --index-url https://download.pytorch.org/whl/cu126
 )
 
@@ -115,9 +125,7 @@ pip install openai-whisper
 :: 下載必要工具
 echo.
 echo 🔧 下載必要工具 (FFmpeg, yt-dlp)...
-cd ..
-python scripts\download_tools.py
-cd scripts
+python tools/download_tools.py
 
 :: 添加 _internal 目錄到系統 PATH
 echo.
@@ -150,6 +158,16 @@ if exist "%internal_path%" (
 echo.
 echo 🔍 驗證安裝結果...
 python -c "packages=['torch','whisper','google.generativeai','streamlit','dotenv','numpy','requests']; missing=[p for p in packages if not globals().update({'__import__':__import__}) and not __import__('importlib').util.find_spec(p)]; print('✅ 套件驗證通過' if not missing else f'❌ 缺少套件: {missing}'); import torch; print(f'🎯 GPU 加速: 可用' if torch.cuda.is_available() else '💻 GPU 加速: 不可用 (使用 CPU)')" 2>nul
+
+:: 測試 FFmpeg 是否可用
+echo.
+echo 🔧 測試 FFmpeg 是否可用...
+"%internal_path%\ffmpeg.exe" -version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ FFmpeg 無法執行
+) else (
+    echo ✅ FFmpeg 可以正常執行
+)
 
 :: 創建 .env 範例檔案
 if not exist ".env" (

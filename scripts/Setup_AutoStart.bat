@@ -3,8 +3,8 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul 2>&1
 
 echo ==========================================
-echo    YouTube Financial Report Generator v3.0
-echo    YouTube 財經報告生成器 v3.0 - 自動啟動設定
+echo    YouTube Financial Report Generator v1.0.0
+echo    YouTube 財經報告生成器 v1.0.0 - 自動啟動設定
 echo ==========================================
 echo.
 

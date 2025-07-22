@@ -18,8 +18,8 @@ python tools/stop_streamlit.pyelayedexpansion
 chcp 65001 >nul 2>&1
 
 echo ==========================================
-echo    YouTube Financial Report Generator v3.0
-echo    YouTube 財經報告生成器 v3.0 - 停止服務
+echo    YouTube Financial Report Generator v1.0.0
+echo    YouTube 財經報告生成器 v1.0.0 - 停止服務
 echo ==========================================
 echo.
 
@@ -39,7 +39,7 @@ if errorlevel 1 (
 )
 
 :: Run Python stop script
-python stop_streamlit.py
+python tools/stop_streamlit.py
 
 echo.
 pause
