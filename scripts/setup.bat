@@ -104,7 +104,7 @@ echo 📥 安裝核心套件...
 
 :: 先安裝基礎套件
 echo 🔧 安裝基礎套件...
-pip install numpy requests python-dotenv streamlit
+pip install numpy requests python-dotenv streamlit psutil
 
 :: 安裝 PyTorch
 echo 🔧 安裝 PyTorch...
@@ -157,7 +157,7 @@ if exist "%internal_path%" (
 :: 驗證安裝
 echo.
 echo 🔍 驗證安裝結果...
-python -c "packages=['torch','whisper','google.generativeai','streamlit','dotenv','numpy','requests']; missing=[p for p in packages if not globals().update({'__import__':__import__}) and not __import__('importlib').util.find_spec(p)]; print('✅ 套件驗證通過' if not missing else f'❌ 缺少套件: {missing}'); import torch; print(f'🎯 GPU 加速: 可用' if torch.cuda.is_available() else '💻 GPU 加速: 不可用 (使用 CPU)')" 2>nul
+python -c "packages=['torch','whisper','google.generativeai','streamlit','dotenv','numpy','requests','psutil']; missing=[p for p in packages if not globals().update({'__import__':__import__}) and not __import__('importlib').util.find_spec(p)]; print('✅ 套件驗證通過' if not missing else f'❌ 缺少套件: {missing}'); import torch; print(f'🎯 GPU 加速: 可用' if torch.cuda.is_available() else '💻 GPU 加速: 不可用 (使用 CPU)')" 2>nul
 
 :: 測試 FFmpeg 是否可用
 echo.
