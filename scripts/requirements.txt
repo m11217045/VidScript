@@ -1,0 +1,9 @@
+streamlit>=1.28.0
+google-generativeai>=0.8.0
+openai-whisper>=20231117
+python-dotenv>=1.0.0
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.21.0
+requests>=2.25.0
+psutil>=5.9.0

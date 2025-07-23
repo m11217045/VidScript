@@ -248,6 +248,13 @@ class VideoProcessor:
             status_text.text("開始轉錄音訊...")
             progress_bar.progress(50)
             
+            # 設定 FFmpeg 路徑供 Whisper 使用
+            original_path = os.environ.get('PATH', '')
+            internal_dir = os.path.dirname(FFMPEG_PATH)
+            if internal_dir not in original_path:
+                os.environ['PATH'] = f"{internal_dir};{original_path}"
+                st.info(f"🔧 已設定 FFmpeg 路徑：{internal_dir}")
+            
             result = model.transcribe(
                 AUDIO_FILENAME, 
                 language="zh",
