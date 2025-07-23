@@ -17,6 +17,7 @@ if project_root not in sys.path:
 from src.core.config import AI_PROVIDERS, WHISPER_MODELS
 from src.services.video_processor import VideoProcessor
 from src.core.business_logic import BusinessLogic
+from src.utils.prompt_manager import PromptManager
 
 # 設定編碼環境
 import locale
@@ -44,6 +45,20 @@ def main():
     # 側邊欄設定
     with st.sidebar:
         st.header("⚙️ 設定")
+        
+        # 初始化 Prompt 管理器
+        prompt_manager = PromptManager()
+        
+        # Prompt 選擇
+        st.subheader("📝 Prompt選擇")
+        available_prompts = prompt_manager.get_available_prompts()
+        
+        selected_prompt = st.selectbox(
+            "選擇專家",
+            available_prompts,
+            index=0,
+            help="選擇適合影片內容的專業分析師"
+        )
         
         # 系統資訊
         st.subheader("🖥️ 系統資訊")
@@ -78,12 +93,12 @@ def main():
         # 處理選項
         st.subheader("🔧 處理選項")
         
-        # Whisper 模型選擇
+        # Faster-Whisper 模型選擇
         whisper_model_display = st.selectbox(
-            "選擇 Whisper 模型",
+            "選擇 Faster-Whisper 模型",
             list(WHISPER_MODELS.keys()),
             index=0,
-            help="Base: 快速但精度較低，Medium: 平衡速度與精度，Large: 高精度但速度較慢"
+            help="Tiny: 最低 VRAM，Base: 低 VRAM，Small: 中等 VRAM，Medium: 平衡，Large: 高精度高 VRAM"
         )
         whisper_model = WHISPER_MODELS[whisper_model_display]
         
@@ -121,6 +136,9 @@ def main():
                 # 準備 Cookie 檔案
                 cookie_path = BusinessLogic.prepare_cookie_file(cookie_file)
                 
+                # 獲取選中的 prompt
+                selected_prompt_content = prompt_manager.get_prompt_content(selected_prompt)
+                
                 # 開始處理
                 BusinessLogic.process_video(
                     youtube_url.strip(),
@@ -128,24 +146,26 @@ def main():
                     delete_transcript,
                     save_path,
                     cookie_path,
-                    whisper_model
+                    whisper_model,
+                    selected_prompt_content
                 )
     
     with col2:
         st.subheader("📋 使用說明")
         st.markdown("""
         ### 步驟：
-        1. **設定 AI**: 選擇 AI 提供商並輸入 API Key
-        2. **輸入網址**: 貼上 YouTube 影片連結
-        3. **選填設定**: 上傳 Cookie 檔案（如需要）
-        4. **開始處理**: 點擊生成報告按鈕
+        1. **選擇專家**: 在左側選擇適合的分析專家
+        2. **設定 AI**: 選擇 AI 提供商並輸入 API Key
+        3. **輸入網址**: 貼上 YouTube 影片連結
+        4. **選填設定**: 上傳 Cookie 檔案（如需要）
+        5. **開始處理**: 點擊生成報告按鈕
         
         ### 功能特色：
         - 🎯 **智慧字幕優先**: 優先使用 YouTube 字幕
-        - 🎤 **語音轉文字**: Whisper 備用方案
+        - 🎤 **語音轉文字**: Faster-Whisper (VRAM 優化)
         - 🤖 **AI 潤飾**: 支援 Gemini
         - ⚡ **GPU 加速**: 自動檢測 CUDA 支援
-        - 📄 **Markdown 格式**: 結構化報告輸出
+        - 📄 **專業報告**: 依專家類型產生結構化報告
         """)
 
 

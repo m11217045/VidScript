@@ -1,6 +1,6 @@
 streamlit>=1.28.0
 google-generativeai>=0.8.0
-openai-whisper>=20231117
+faster-whisper>=1.0.0
 python-dotenv>=1.0.0
 torch>=2.0.0
 torchaudio>=2.0.0

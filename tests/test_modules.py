@@ -34,7 +34,7 @@ try:
     # 檢查配置
     print(f"\n📋 配置檢查:")
     print(f"   AI 提供商: {list(AI_PROVIDERS.keys())}")
-    print(f"   Whisper 模型: {list(WHISPER_MODELS.keys())}")
+    print(f"   Faster-Whisper 模型: {list(WHISPER_MODELS.keys())}")
     print(f"   yt-dlp 路徑: {YT_DLP_PATH}")
     print(f"   FFmpeg 路徑: {FFMPEG_PATH}")
     

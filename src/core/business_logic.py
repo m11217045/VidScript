@@ -15,7 +15,7 @@ class BusinessLogic:
     """業務邏輯處理器"""
     
     @staticmethod
-    def process_video(youtube_url, api_key, delete_transcript, save_path, cookie_file=None, whisper_model="base"):
+    def process_video(youtube_url, api_key, delete_transcript, save_path, cookie_file=None, whisper_model="base", custom_prompt=None):
         """處理影片的主要邏輯"""
         
         with st.container():
@@ -30,13 +30,13 @@ class BusinessLogic:
                 # 優先嘗試使用 CC 字幕
                 if VideoProcessor.check_and_download_subtitles(youtube_url, cookie_file):
                     if FileManager.convert_vtt_to_text():
-                        if AIService.refine_with_ai(final_report_path, api_key):
+                        if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
                             success = True
                 else:
                     # 如果沒有字幕，則使用語音轉文字
                     if VideoProcessor.download_audio(youtube_url, cookie_file):
                         if VideoProcessor.transcribe_audio(whisper_model):
-                            if AIService.refine_with_ai(final_report_path, api_key):
+                            if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
                                 success = True
             
             except Exception as e:

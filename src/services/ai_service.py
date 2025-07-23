@@ -34,7 +34,7 @@ class AIService:
             return False
     
     @staticmethod
-    def refine_with_ai(report_output_filename, api_key):
+    def refine_with_ai(report_output_filename, api_key, custom_prompt=None):
         """使用 AI 生成報告"""
         st.write("🤖 步驟 4/6: 開始使用 AI 潤飾報告...")
         
@@ -43,18 +43,24 @@ class AIService:
             return False
 
         try:
-            prompt_file = "prompt.txt"
-            if not os.path.exists(prompt_file):
-                st.warning(f"⚠️ 找不到 {prompt_file} 檔案，正在建立空檔案...")
-                if not FileManager.create_empty_prompt_file(prompt_file):
+            # 使用自定義 prompt 或預設的 prompt 檔案
+            if custom_prompt:
+                prompt_template = custom_prompt
+                st.info("🎯 使用自定義 Prompt 進行分析")
+            else:
+                # 向後兼容：使用 prompt.txt 檔案
+                prompt_file = "prompt.txt"
+                if not os.path.exists(prompt_file):
+                    st.warning(f"⚠️ 找不到 {prompt_file} 檔案，正在建立空檔案...")
+                    if not FileManager.create_empty_prompt_file(prompt_file):
+                        return False
+                
+                with open(prompt_file, "r", encoding="utf-8") as f:
+                    prompt_template = f.read()
+                
+                if not prompt_template.strip():
+                    st.error("❌ prompt.txt 檔案為空。")
                     return False
-            
-            with open(prompt_file, "r", encoding="utf-8") as f:
-                prompt_template = f.read()
-            
-            if not prompt_template.strip():
-                st.error("❌ prompt.txt 檔案為空。")
-                return False
             
             with open(TRANSCRIPT_FILENAME, "r", encoding="utf-8") as f:
                 transcript_text = f.read()
@@ -63,10 +69,11 @@ class AIService:
                 st.error("❌ 逐字稿為空，無法產生報告。")
                 return False
 
+            # 組合最終的 prompt
             if "{transcript_text}" in prompt_template:
                 final_prompt = prompt_template.format(transcript_text=transcript_text)
             else:
-                final_prompt = prompt_template + "\n\n" + transcript_text
+                final_prompt = prompt_template + "\n\n影片內容逐字稿：\n" + transcript_text
             
             return AIService.call_gemini_api(final_prompt, api_key, report_output_filename)
                 

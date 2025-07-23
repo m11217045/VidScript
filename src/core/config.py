@@ -15,11 +15,14 @@ AI_PROVIDERS = {
     "Gemini": "gemini"
 }
 
-# Whisper 模型選項
+# Faster-Whisper 模型選項（針對 VRAM 優化）
 WHISPER_MODELS = {
-    "Base (快速)": "base",
+    "Tiny (最低 VRAM)": "tiny",
+    "Base (低 VRAM)": "base",
+    "Small (中等 VRAM)": "small", 
     "Medium (平衡)": "medium", 
-    "Large (高精度)": "large"
+    "Large-v2 (高精度)": "large-v2",
+    "Large-v3 (最新高精度)": "large-v3"
 }
 
 # 環境變數設定
