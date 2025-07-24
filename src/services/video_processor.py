@@ -170,11 +170,32 @@ class VideoProcessor:
                 cuda_available = torch.cuda.is_available()
                 if cuda_available:
                     torch.cuda.empty_cache()
+                    # 檢查 GPU 是否支援 float16
+                    try:
+                        # 測試 GPU 是否支援 float16
+                        device_capability = torch.cuda.get_device_capability()
+                        supports_float16 = device_capability[0] >= 6  # Pascal 架構以上支援 float16
+                    except Exception:
+                        supports_float16 = False
+                else:
+                    supports_float16 = False
             except ImportError:
                 cuda_available = False
+                supports_float16 = False
             
-            device = "cuda" if cuda_available else "cpu"
-            compute_type = "float16" if cuda_available else "int8"
+            # 智慧選擇設備和計算類型
+            if cuda_available:
+                device = "cuda"
+                if supports_float16:
+                    compute_type = "float16"
+                    st.write("🚀 使用 GPU + float16 加速")
+                else:
+                    compute_type = "float32"
+                    st.write("🔧 使用 GPU + float32 (您的 GPU 不支援 float16)")
+            else:
+                device = "cpu"
+                compute_type = "int8"
+                st.write("💻 使用 CPU + int8")
             
             progress_bar.progress(30)
             
@@ -197,15 +218,68 @@ class VideoProcessor:
                 num_workers = min(2, max(1, cpu_count // 4))
             
             # 建立模型
-            model = WhisperModel(
-                model_name, 
-                device=device,
-                compute_type=compute_type,
-                cpu_threads=cpu_threads,
-                num_workers=num_workers,
-                download_root=cache_dir,
-                local_files_only=False
-            )
+            try:
+                model = WhisperModel(
+                    model_name, 
+                    device=device,
+                    compute_type=compute_type,
+                    cpu_threads=cpu_threads,
+                    num_workers=num_workers,
+                    download_root=cache_dir,
+                    local_files_only=False
+                )
+                st.write(f"✅ 模型載入成功 ({device}, {compute_type})")
+                
+            except Exception as e:
+                # 如果初始設定失敗，嘗試降級
+                st.warning(f"⚠️ 模型載入失敗，嘗試降級設定: {e}")
+                
+                if device == "cuda" and compute_type == "float16":
+                    # 降級到 float32
+                    try:
+                        compute_type = "float32"
+                        model = WhisperModel(
+                            model_name, 
+                            device=device,
+                            compute_type=compute_type,
+                            cpu_threads=cpu_threads,
+                            num_workers=num_workers,
+                            download_root=cache_dir,
+                            local_files_only=False
+                        )
+                        st.write(f"✅ 降級到 float32 成功")
+                    except Exception:
+                        # 再降級到 CPU
+                        device = "cpu"
+                        compute_type = "int8"
+                        model = WhisperModel(
+                            model_name, 
+                            device=device,
+                            compute_type=compute_type,
+                            cpu_threads=cpu_threads,
+                            num_workers=num_workers,
+                            download_root=cache_dir,
+                            local_files_only=False
+                        )
+                        st.write(f"✅ 降級到 CPU 成功")
+                        
+                elif device == "cuda":
+                    # GPU 但不是 float16，降級到 CPU
+                    device = "cpu"
+                    compute_type = "int8"
+                    model = WhisperModel(
+                        model_name, 
+                        device=device,
+                        compute_type=compute_type,
+                        cpu_threads=cpu_threads,
+                        num_workers=num_workers,
+                        download_root=cache_dir,
+                        local_files_only=False
+                    )
+                    st.write(f"✅ 降級到 CPU 成功")
+                else:
+                    # 重新拋出異常
+                    raise e
             
             progress_bar.progress(50)
             status_text.text("開始轉錄...")
