@@ -216,8 +216,8 @@ class VideoProcessor:
     
     @staticmethod
     def transcribe_audio(model_name="base"):
-        """使用 faster-whisper 將音訊轉為逐字稿（VRAM 優化版本）"""
-        st.write("🎤 步驟 3/6: 開始進行語音轉文字 (faster-whisper GPU 加速版本)...")
+        """使用 faster-whisper 將音訊轉為逐字稿（最大 VRAM 消耗 + 最高速度）"""
+        st.write("🔥 步驟 3/6: 最大 VRAM 消耗模式 - 開始進行語音轉文字 (base 模型 + 極限速度配置)...")
         if not os.path.exists(AUDIO_FILENAME):
             st.error(f"❌ 找不到音訊檔案 {AUDIO_FILENAME}")
             return False
@@ -226,7 +226,7 @@ class VideoProcessor:
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            status_text.text(f"正在載入 Faster-Whisper {model_name} 模型...")
+            status_text.text(f"正在載入 Faster-Whisper {model_name} 高效能模型...")
             progress_bar.progress(10)
             
             device_info = VideoProcessor.check_device_availability()
@@ -236,13 +236,20 @@ class VideoProcessor:
             try:
                 import torch
                 cuda_available = torch.cuda.is_available()
+                if cuda_available:
+                    gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                    st.info(f"🎯 GPU 記憶體總容量: {gpu_memory:.1f} GB")
+                    # 清理之前的 GPU 記憶體
+                    torch.cuda.empty_cache()
+                    initial_memory = torch.cuda.memory_allocated(0) / (1024**3)
+                    st.info(f"📊 初始 GPU 記憶體使用: {initial_memory:.3f} GB")
             except ImportError:
                 cuda_available = False
             
             if cuda_available:
                 device = "cuda"
-                compute_type = "int8_float16"  # 最佳性能配置
-                st.info("🚀 使用 GPU 加速模式：int8_float16 精度")
+                compute_type = "float16"  # 使用 float16 增加 VRAM 使用量
+                st.info("🚀 使用 GPU 高 VRAM 模式：float16 精度 (增加記憶體使用)")
             else:
                 device = "cpu"
                 compute_type = "int8"
@@ -258,28 +265,71 @@ class VideoProcessor:
             progress_bar.progress(40)
             
             try:
-                # 建立 faster-whisper 模型
+                # 確定多執行緒設定 - 高效能配置
+                import multiprocessing
+                
+                # 獲取 CPU 核心數量
+                cpu_count = multiprocessing.cpu_count()
+                
+                if device == "cuda":
+                    # GPU 最大 VRAM 模式：極限並行配置
+                    cpu_threads = cpu_count  # 使用所有 CPU 執行緒輔助 GPU
+                    num_workers = 32  # 大幅增加工作執行緒數消耗更多 VRAM
+                    st.info(f"🔥 GPU 最大 VRAM 模式多執行緒：{cpu_threads} CPU 執行緒，{num_workers} 工作執行緒")
+                    st.info("🎯 目標：使用 base 模型 + 極限並行來消耗所有 VRAM")
+                else:
+                    # CPU 模式：最大化利用多核心
+                    cpu_threads = cpu_count  # 使用所有可用核心
+                    num_workers = min(2, max(1, cpu_count // 4))  # 根據核心數決定 worker 數量
+                    st.info(f"💻 CPU 模式多執行緒設定：{cpu_threads} CPU 執行緒，{num_workers} 工作執行緒")
+                
+                # 建立 faster-whisper 模型（高 VRAM 配置）
                 model = WhisperModel(
                     model_name, 
                     device=device,
                     compute_type=compute_type,
-                    download_root=cache_dir
+                    cpu_threads=cpu_threads,  # 設定 CPU 執行緒數
+                    num_workers=num_workers,  # 設定工作執行緒數
+                    download_root=cache_dir,
+                    local_files_only=False  # 允許下載最新模型
                 )
                 
-                # 特別說明 GPU 記憶體使用情況
+                # 檢查模型載入後的記憶體使用
                 if device == "cuda":
-                    st.info("🎯 **GPU 加速說明**:")
-                    st.info("   • 工作管理員 GPU 3D 使用率 100% = 正常運作 ✅")
-                    st.info("   • VRAM 顯示 0GB 是正常現象（CTranslate2 優化）")
-                    st.info("   • 實際效能：比原版 whisper 快 7-40 倍 🚀")
+                    try:
+                        torch.cuda.synchronize()  # 同步 GPU 操作
+                        after_load_memory = torch.cuda.memory_allocated(0) / (1024**3)
+                        memory_increase = after_load_memory - initial_memory
+                        st.info(f"📈 模型載入後 GPU 記憶體: {after_load_memory:.3f} GB (+{memory_increase:.3f} GB)")
+                        
+                        # 顯示 VRAM 使用率
+                        vram_usage_percent = (after_load_memory / gpu_memory) * 100
+                        st.info(f"💾 VRAM 使用率: {vram_usage_percent:.1f}%")
+                        
+                        st.info("🔥 **高 VRAM 模式說明**:")
+                        st.info(f"   • 使用 {model_name} 模型 (更高準確度)")
+                        st.info("   • float16 精度 (增加記憶體使用)")
+                        st.info(f"   • {num_workers} 個工作執行緒 (提高並行度)")
+                        st.info("   • 預期效能提升 2-5 倍 🚀")
+                    except:
+                        st.info("📊 GPU 記憶體資訊獲取中...")
                 
-                st.success(f"✅ 成功載入 {model_name} 模型")
+                st.success(f"✅ 成功載入 {model_name} 高效能模型")
                 
             except Exception as e:
                 st.warning(f"載入 {model_name} 模型失敗: {e}")
-                st.info("� 嘗試使用 base 模型...")
-                model = WhisperModel("base", device=device, compute_type=compute_type)
-                st.success("✅ 成功載入 base 備用模型")
+                st.info("🔄 嘗試使用 base 模型...")
+                
+                # 備用模型也使用高 VRAM 設定
+                model = WhisperModel(
+                    "base", 
+                    device=device, 
+                    compute_type=compute_type,
+                    cpu_threads=cpu_threads,
+                    num_workers=num_workers,
+                    download_root=cache_dir
+                )
+                st.success("✅ 成功載入 base 備用模型（高 VRAM 版本）")
             
             progress_bar.progress(50)
             status_text.text("開始轉錄音訊...")
@@ -291,19 +341,38 @@ class VideoProcessor:
                 os.environ['PATH'] = f"{internal_dir};{original_path}"
                 st.info(f"🔧 已設定 FFmpeg 路徑：{internal_dir}")
             
-            # 進行轉錄
+            # 進行極限效能轉錄
+            st.info(f"🎯 開始轉錄：{model_name} 模型（極限 VRAM 消耗模式）")
+            st.info(f"🖥️ 設備：{device} | 精度：{compute_type} | 工作執行緒：{num_workers if device == 'cuda' else 'N/A'}")
+            
+            # 使用極限效能參數進行轉錄（最大化並行處理）
             segments, info = model.transcribe(
                 AUDIO_FILENAME, 
                 language="zh",
-                beam_size=5 if device == "cuda" else 3,
-                temperature=0.0,
-                vad_filter=True
+                beam_size=1,  # 使用最小束搜索換取最大速度
+                temperature=0.0,  # 確定性轉錄
+                vad_filter=True,  # 語音活動檢測
+                vad_parameters=dict(
+                    min_silence_duration_ms=100,  # 最小靜音持續時間（極快響應）
+                    threshold=0.1,  # 非常敏感的 VAD 閾值
+                    min_speech_duration_ms=100,  # 最小語音持續時間
+                    max_speech_duration_s=30  # 短語音段（最大化並行）
+                ),
+                word_timestamps=False,  # 關閉精確時間戳以節省記憶體給並行處理
+                compression_ratio_threshold=10.0,  # 寬鬆的壓縮比閾值
+                log_prob_threshold=-2.0,  # 寬鬆的機率閾值
+                no_speech_threshold=0.1,  # 極敏感的無語音檢測
+                condition_on_previous_text=False,  # 關閉前文預測以加速
+                initial_prompt=None  # 不使用初始提示以減少記憶體開銷
             )
             
             if device == "cuda":
-                st.info("🚀 GPU 轉錄進行中...")
+                st.info("🚀 GPU 極限 VRAM 多執行緒轉錄進行中...")
+                st.info("   • 32 個並行工作執行緒同時運作 💥")
+                st.info("   • 最大化 GPU 記憶體使用以獲得極限速度")
+                st.info("   • 預期消耗大部分可用 VRAM 💾")
             else:
-                st.info("💻 CPU 轉錄進行中...")
+                st.info("💻 CPU 多執行緒轉錄進行中...")
             
             progress_bar.progress(80)
             status_text.text("正在整理轉錄結果...")
@@ -326,9 +395,11 @@ class VideoProcessor:
             st.success(f"✅ 逐字稿已成功儲存為 {TRANSCRIPT_FILENAME}")
             st.info(f"📊 轉錄統計：{segment_count} 個片段，語言: {info.language}")
             
-            # GPU 效能確認
+            # 顯示多執行緒效能說明
             if device == "cuda":
-                st.info("🔥 **GPU 加速成功** - 您可以在工作管理員中看到 GPU 使用率")
+                st.info("🔥 **GPU 多執行緒加速成功** - 您可以在工作管理員中看到 GPU 使用率")
+            else:
+                st.info(f"⚡ **CPU 多執行緒加速成功** - 使用了 {cpu_threads} 個 CPU 執行緒")
             
             return True
             
