@@ -1,9 +1,19 @@
-streamlit>=1.28.0
+# VidScript 影片分析工具 - 優化套件清單
+# 基於實際使用分析，移除多餘套件
+
+# 核心 AI 套件 (GPU 優化)
+torch==2.6.0+cu118
+torchaudio==2.6.0+cu118
+faster-whisper==1.1.1
+
+# AI 服務
 google-generativeai>=0.8.0
-faster-whisper>=1.0.0
+
+# 網頁界面
+streamlit>=1.28.0
+
+# 基礎套件
 python-dotenv>=1.0.0
-torch>=2.0.0
-torchaudio>=2.0.0
-numpy>=1.21.0
 requests>=2.25.0
+numpy>=1.21.0
 psutil>=5.9.0

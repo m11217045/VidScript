@@ -17,12 +17,9 @@ AI_PROVIDERS = {
 
 # Faster-Whisper 模型選項（針對 VRAM 優化）
 WHISPER_MODELS = {
-    "Tiny (最低 VRAM)": "tiny",
     "Base (低 VRAM)": "base",
     "Small (中等 VRAM)": "small", 
-    "Medium (平衡)": "medium", 
-    "Large-v2 (高精度)": "large-v2",
-    "Large-v3 (最新高精度)": "large-v3"
+    "Medium (平衡)": "medium"
 }
 
 # 環境變數設定
