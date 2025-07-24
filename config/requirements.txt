@@ -1,10 +1,19 @@
-# YouTube 財經報告生成器所需套件
-streamlit>=1.28.0
-google-generativeai>=0.8.0
-openai-whisper>=20231117
-python-dotenv>=1.0.0
-torch>=2.0.0
-torchaudio>=2.0.0
-numpy>=1.21.0
-requests>=2.25.0
-psutil>=5.9.0
+# VidScript 影片分析工具 - 優化版本依賴
+# 基於 faster-whisper 遷移和性能測試的最佳配置
+
+# 核心 AI 套件 (經過兼容性驗證)
+torch==2.6.0+cu118           # PyTorch 穩定版本，兼容 CTranslate2
+torchaudio==2.6.0+cu118      # 音訊處理，匹配 torch 版本
+faster-whisper==1.1.1       # 高性能語音轉文字 (7-40x 加速)
+
+# AI 和機器學習
+google-generativeai>=0.8.0  # Google Gemini AI API
+numpy>=1.21.0               # 數值計算基礎
+
+# 網頁應用和界面
+streamlit>=1.28.0           # 網頁應用框架
+
+# 工具和實用套件
+python-dotenv>=1.0.0        # 環境變數管理
+requests>=2.25.0            # HTTP 請求
+psutil>=5.9.0               # 系統資源監控
