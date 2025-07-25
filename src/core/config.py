@@ -10,6 +10,9 @@ TRANSCRIPT_FILENAME = "_temp_transcript.txt"
 SUBTITLE_FILENAME = "_temp_subtitle.vtt"
 DEFAULT_REPORT_NAME = "youtube_report"
 
+# 逐字稿儲存配置
+TRANSCRIPTS_FOLDER = "saved_transcripts"
+
 # AI 模型選項
 AI_PROVIDERS = {
     "Gemini": "gemini"
@@ -24,6 +27,7 @@ WHISPER_MODELS = {
 
 # 環境變數設定
 os.environ["PYTHONIOENCODING"] = "utf-8"
+os.environ["PYTHONUTF8"] = "1"
 os.environ["TQDM_DISABLE"] = "1"
 
 # 獲取可執行檔案路徑

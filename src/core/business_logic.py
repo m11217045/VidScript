@@ -15,47 +15,66 @@ class BusinessLogic:
     """業務邏輯處理器"""
     
     @staticmethod
-    def process_video(youtube_url, api_key, delete_transcript, save_path, cookie_file=None, whisper_model="base", custom_prompt=None):
-        """處理影片的主要邏輯"""
+    def process_video(youtube_url, api_key, save_path, cookie_file=None, whisper_model="base", custom_prompt=None):
+        """處理影片的主要邏輯 (自動保存逐字稿模式)"""
         
         with st.container():
-            st.subheader("📈 處理進度")
+            st.subheader("📈 處理進度 (自動保存逐字稿)")
+            
+            # 確保 save_path 不為 None
+            if save_path is None or (isinstance(save_path, str) and save_path.strip() == ""):
+                save_path = os.getcwd()  # 使用當前工作目錄作為默認值
+                st.warning(f"⚠️ 使用默認儲存路徑: {save_path}")
+            
+            # 首先獲取影片標題
+            st.write("🎯 步驟 1/7: 獲取影片資訊...")
+            video_title = VideoProcessor.get_video_title(youtube_url, cookie_file)
+            st.success(f"✅ 影片標題: {video_title}")
             
             # 建立報告檔案路徑
             final_report_path = os.path.join(save_path, f"{DEFAULT_REPORT_NAME}.txt")
             
             success = False
+            start_time = time.time()
             
             try:
+                # 顯示性能資訊
+                st.info("🚀 啟動高速模式：多執行緒下載 + GPU 加速轉錄 + 自動保存逐字稿")
+                
                 # 優先嘗試使用 CC 字幕
                 if VideoProcessor.check_and_download_subtitles(youtube_url, cookie_file):
                     if FileManager.convert_vtt_to_text():
-                        if delete_transcript:
-                            # 如果要刪除逐字稿，進行AI修飾
-                            if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
-                                success = True
-                        else:
-                            # 如果保留逐字稿，直接使用原始逐字稿作為最終報告
-                            if os.path.exists(TRANSCRIPT_FILENAME):
-                                # 複製逐字稿到最終報告路徑
-                                import shutil
-                                shutil.copy2(TRANSCRIPT_FILENAME, final_report_path)
-                                success = True
+                        processing_time = time.time() - start_time
+                        st.success(f"⚡ 字幕處理完成！用時: {processing_time:.1f} 秒")
+                        
+                        # 保存逐字稿到資料夾
+                        st.write("💾 步驟 4/7: 保存逐字稿...")
+                        FileManager.save_transcript(video_title)
+                        
+                        # 進行AI修飾
+                        st.write("🤖 步驟 5/7: AI 修飾報告...")
+                        if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                            success = True
                 else:
                     # 如果沒有字幕，則使用語音轉文字
+                    download_start = time.time()
                     if VideoProcessor.download_audio(youtube_url, cookie_file):
+                        download_time = time.time() - download_start
+                        st.success(f"⚡ 音訊下載完成！用時: {download_time:.1f} 秒")
+                        
+                        transcribe_start = time.time()
                         if VideoProcessor.transcribe_audio(whisper_model):
-                            if delete_transcript:
-                                # 如果要刪除逐字稿，進行AI修飾
-                                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
-                                    success = True
-                            else:
-                                # 如果保留逐字稿，直接使用原始逐字稿作為最終報告
-                                if os.path.exists(TRANSCRIPT_FILENAME):
-                                    # 複製逐字稿到最終報告路徑
-                                    import shutil
-                                    shutil.copy2(TRANSCRIPT_FILENAME, final_report_path)
-                                    success = True
+                            transcribe_time = time.time() - transcribe_start
+                            st.success(f"🔥 語音轉文字完成！用時: {transcribe_time:.1f} 秒")
+                            
+                            # 保存逐字稿到資料夾
+                            st.write("💾 步驟 4/7: 保存逐字稿...")
+                            FileManager.save_transcript(video_title)
+                            
+                            # 進行AI修飾
+                            st.write("🤖 步驟 5/7: AI 修飾報告...")
+                            if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                                success = True
             
             except Exception as e:
                 st.error(f"❌ 發生嚴重錯誤：{e}")
@@ -64,16 +83,44 @@ class BusinessLogic:
                 success = False
             
             finally:
-                FileManager.cleanup_files(delete_transcript, cookie_file)
+                st.write("🧹 步驟 6/7: 清理暫存檔案...")
+                FileManager.cleanup_files(cookie_file)
+                
+                # 清理臨時逐字稿
+                try:
+                    if os.path.exists(TRANSCRIPT_FILENAME):
+                        os.remove(TRANSCRIPT_FILENAME)
+                        st.write(f"🗑️ 已移除臨時逐字稿: {TRANSCRIPT_FILENAME}")
+                except OSError as e:
+                    st.warning(f"⚠️ 無法移除臨時逐字稿: {e}")
+                
+                # 顯示總處理時間
+                total_time = time.time() - start_time
+                st.write("✅ 步驟 7/7: 處理完成")
+                if success:
+                    st.success(f"🎉 處理完成！總用時: {total_time:.1f} 秒")
+                    st.info("⚡ 多執行緒下載 + GPU 加速轉錄模式已啟用")
+                    st.info("💾 逐字稿已自動保存到 saved_transcripts 資料夾")
+                else:
+                    st.error(f"❌ 處理失敗，用時: {total_time:.1f} 秒")
             
             return BusinessLogic._display_results(success, final_report_path)
     
     @staticmethod
-    def process_transcript_file(transcript_file, api_key, delete_transcript, save_path, custom_prompt=None):
-        """處理上傳的逐字稿檔案"""
+    def process_transcript_file(transcript_file, api_key, save_path, custom_prompt=None):
+        """處理上傳的逐字稿檔案（自動保存逐字稿）"""
         
         with st.container():
-            st.subheader("📈 處理進度")
+            st.subheader("📈 處理進度 (自動保存逐字稿)")
+            
+            # 確保 save_path 不為 None
+            if save_path is None or (isinstance(save_path, str) and save_path.strip() == ""):
+                save_path = os.getcwd()  # 使用當前工作目錄作為默認值
+                st.warning(f"⚠️ 使用默認儲存路徑: {save_path}")
+            
+            # 使用檔案名稱作為標題
+            file_title = transcript_file.name.rsplit('.', 1)[0]  # 移除副檔名
+            st.success(f"✅ 檔案名稱: {file_title}")
             
             # 建立報告檔案路徑
             final_report_path = os.path.join(save_path, f"{DEFAULT_REPORT_NAME}.txt")
@@ -81,7 +128,7 @@ class BusinessLogic:
             success = False
             
             try:
-                st.write("📝 步驟 1/3: 讀取逐字稿檔案...")
+                st.write("📝 步驟 1/5: 讀取逐字稿檔案...")
                 
                 # 讀取上傳的逐字稿檔案
                 transcript_content = transcript_file.read().decode('utf-8')
@@ -92,19 +139,14 @@ class BusinessLogic:
                 
                 st.success(f"✅ 逐字稿檔案已讀取，內容長度: {len(transcript_content)} 字元")
                 
-                if delete_transcript:
-                    # 如果要刪除逐字稿，進行AI修飾
-                    st.write("📝 步驟 2/3: 進行AI修飾...")
-                    if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
-                        success = True
-                else:
-                    # 如果保留逐字稿，直接使用原始逐字稿作為最終報告
-                    st.write("📝 步驟 2/3: 保存原始逐字稿...")
-                    if os.path.exists(TRANSCRIPT_FILENAME):
-                        # 複製逐字稿到最終報告路徑
-                        import shutil
-                        shutil.copy2(TRANSCRIPT_FILENAME, final_report_path)
-                        success = True
+                # 保存逐字稿到資料夾
+                st.write("💾 步驟 2/5: 保存逐字稿...")
+                FileManager.save_transcript(file_title)
+                
+                # 進行AI修飾
+                st.write("🤖 步驟 3/5: AI 修飾報告...")
+                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                    success = True
             
             except Exception as e:
                 st.error(f"❌ 發生嚴重錯誤：{e}")
@@ -113,8 +155,23 @@ class BusinessLogic:
                 success = False
             
             finally:
-                st.write("📝 步驟 3/3: 清理臨時檔案...")
-                FileManager.cleanup_files(delete_transcript)
+                st.write("🧹 步驟 4/5: 清理臨時檔案...")
+                FileManager.cleanup_files()
+                
+                # 清理臨時逐字稿
+                try:
+                    if os.path.exists(TRANSCRIPT_FILENAME):
+                        os.remove(TRANSCRIPT_FILENAME)
+                        st.write(f"🗑️ 已移除臨時逐字稿: {TRANSCRIPT_FILENAME}")
+                except OSError as e:
+                    st.warning(f"⚠️ 無法移除臨時逐字稿: {e}")
+                
+                st.write("✅ 步驟 5/5: 處理完成")
+                if success:
+                    st.success("🎉 處理完成！")
+                    st.info("� 逐字稿已自動保存到 saved_transcripts 資料夾")
+                else:
+                    st.error("❌ 處理失敗")
             
             return BusinessLogic._display_results(success, final_report_path)
     
