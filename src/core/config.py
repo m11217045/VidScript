@@ -25,6 +25,13 @@ WHISPER_MODELS = {
     "Medium (平衡)": "medium"
 }
 
+# 語言選項配置
+LANGUAGE_OPTIONS = {
+    "自動檢測": None,
+    "中文": "zh",
+    "英文": "en"
+}
+
 # 環境變數設定
 os.environ["PYTHONIOENCODING"] = "utf-8"
 os.environ["PYTHONUTF8"] = "1"
@@ -38,4 +45,4 @@ FFMPEG_PATH = os.path.join(INTERNAL_DIR, "ffmpeg.exe")
 
 # 字幕語言優先順序
 SUBTITLE_LANGUAGES = ['zh-TW', 'zh-CN', 'zh', 'en']
-SUPPORTED_LANGUAGES = ['zh', 'en', 'ja', 'ko', 'es', 'fr', 'de']
+SUPPORTED_LANGUAGES = ['zh', 'en']

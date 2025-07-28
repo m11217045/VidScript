@@ -15,7 +15,7 @@ class BusinessLogic:
     """業務邏輯處理器"""
     
     @staticmethod
-    def process_video(youtube_url, api_key, save_path, cookie_file=None, whisper_model="base", custom_prompt=None):
+    def process_video(youtube_url, api_key, save_path, cookie_file=None, whisper_model="base", custom_prompt=None, language="zh"):
         """處理影片的主要邏輯 (自動保存逐字稿模式)"""
         
         with st.container():
@@ -63,7 +63,7 @@ class BusinessLogic:
                         st.success(f"⚡ 音訊下載完成！用時: {download_time:.1f} 秒")
                         
                         transcribe_start = time.time()
-                        if VideoProcessor.transcribe_audio(whisper_model):
+                        if VideoProcessor.transcribe_audio(whisper_model, language):
                             transcribe_time = time.time() - transcribe_start
                             st.success(f"🔥 語音轉文字完成！用時: {transcribe_time:.1f} 秒")
                             
@@ -169,7 +169,81 @@ class BusinessLogic:
                 st.write("✅ 步驟 5/5: 處理完成")
                 if success:
                     st.success("🎉 處理完成！")
-                    st.info("� 逐字稿已自動保存到 saved_transcripts 資料夾")
+                    st.info("💾 逐字稿已自動保存到 saved_transcripts 資料夾")
+                else:
+                    st.error("❌ 處理失敗")
+            
+            return BusinessLogic._display_results(success, final_report_path)
+    
+    @staticmethod
+    def process_saved_transcript(transcript_filename, api_key, save_path, custom_prompt=None):
+        """處理已保存的逐字稿檔案"""
+        
+        with st.container():
+            st.subheader("📈 處理進度 (重新分析已保存逐字稿)")
+            
+            # 確保 save_path 不為 None
+            if save_path is None or (isinstance(save_path, str) and save_path.strip() == ""):
+                save_path = os.getcwd()  # 使用當前工作目錄作為默認值
+                st.warning(f"⚠️ 使用默認儲存路徑: {save_path}")
+            
+            # 建構逐字稿檔案路徑
+            from src.core.config import TRANSCRIPTS_FOLDER
+            transcript_path = os.path.join(TRANSCRIPTS_FOLDER, transcript_filename)
+            
+            # 使用檔案名稱作為標題（移除副檔名）
+            file_title = transcript_filename.rsplit('.', 1)[0]
+            st.success(f"✅ 選擇的逐字稿: {file_title}")
+            
+            # 建立報告檔案路徑
+            final_report_path = os.path.join(save_path, f"{DEFAULT_REPORT_NAME}.txt")
+            
+            success = False
+            
+            try:
+                st.write("📝 步驟 1/4: 讀取已保存的逐字稿...")
+                
+                # 檢查檔案是否存在
+                if not os.path.exists(transcript_path):
+                    st.error(f"❌ 找不到逐字稿檔案: {transcript_path}")
+                    return False
+                
+                # 讀取已保存的逐字稿檔案
+                with open(transcript_path, 'r', encoding='utf-8') as f:
+                    transcript_content = f.read()
+                
+                # 將內容寫入臨時逐字稿檔案以供AI處理
+                with open(TRANSCRIPT_FILENAME, 'w', encoding='utf-8') as f:
+                    f.write(transcript_content)
+                
+                st.success(f"✅ 逐字稿已載入，內容長度: {len(transcript_content)} 字元")
+                
+                # 進行AI修飾
+                st.write("🤖 步驟 2/4: AI 重新分析報告...")
+                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                    success = True
+            
+            except Exception as e:
+                st.error(f"❌ 發生嚴重錯誤：{e}")
+                import traceback
+                st.error(f"詳細錯誤資訊：{traceback.format_exc()}")
+                success = False
+            
+            finally:
+                st.write("🧹 步驟 3/4: 清理臨時檔案...")
+                
+                # 清理臨時逐字稿
+                try:
+                    if os.path.exists(TRANSCRIPT_FILENAME):
+                        os.remove(TRANSCRIPT_FILENAME)
+                        st.write(f"🗑️ 已移除臨時逐字稿: {TRANSCRIPT_FILENAME}")
+                except OSError as e:
+                    st.warning(f"⚠️ 無法移除臨時逐字稿: {e}")
+                
+                st.write("✅ 步驟 4/4: 處理完成")
+                if success:
+                    st.success("🎉 重新分析完成！")
+                    st.info("🔄 使用新的分析設定重新生成報告")
                 else:
                     st.error("❌ 處理失敗")
             

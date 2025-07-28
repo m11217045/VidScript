@@ -10,7 +10,7 @@ import streamlit as st
 from faster_whisper import WhisperModel
 from src.core.config import (
     YT_DLP_PATH, FFMPEG_PATH, AUDIO_FILENAME, SUBTITLE_FILENAME, 
-    TRANSCRIPT_FILENAME, SUBTITLE_LANGUAGES, SUPPORTED_LANGUAGES
+    TRANSCRIPT_FILENAME, SUBTITLE_LANGUAGES, SUPPORTED_LANGUAGES, LANGUAGE_OPTIONS
 )
 
 
@@ -284,7 +284,7 @@ class VideoProcessor:
             return "無法確定設備"
     
     @staticmethod
-    def transcribe_audio(model_name="base"):
+    def transcribe_audio(model_name="base", language="zh"):
         """使用 faster-whisper 進行語音轉文字"""
         st.write("🔥 步驟 3/6: 開始語音轉文字...")
         if not os.path.exists(AUDIO_FILENAME):
@@ -306,6 +306,14 @@ class VideoProcessor:
             
             device = "cuda" if cuda_available else "cpu"
             compute_type = "float16" if cuda_available else "int8"
+            
+            # 顯示語言資訊
+            if language:
+                language_name = [k for k, v in LANGUAGE_OPTIONS.items() if v == language]
+                language_display = language_name[0] if language_name else language
+                st.info(f"🌍 語言設定: {language_display}")
+            else:
+                st.info("🌍 語言設定: 自動檢測 (支援中文/英文智慧識別)")
             
             progress_bar.progress(30)
             
@@ -351,7 +359,7 @@ class VideoProcessor:
             # 進行轉錄 (最佳化參數)
             segments, info = model.transcribe(
                 AUDIO_FILENAME, 
-                language="zh",
+                language=language,  # 使用傳入的語言參數
                 beam_size=1,           # 最快的 beam search
                 temperature=0.0,       # 確定性輸出，避免重複計算
                 vad_filter=True,       # 啟用 VAD 過濾靜音
@@ -361,11 +369,20 @@ class VideoProcessor:
                 no_speech_threshold=0.6,  # 提高靜音檢測靈敏度
                 log_prob_threshold=-1.0,  # 降低機率門檻，提升速度
                 compression_ratio_threshold=2.4,  # 適中的壓縮比門檻
-                initial_prompt="以下是中文語音內容："  # 中文提示，提升準確度
+                initial_prompt=VideoProcessor._get_language_prompt(language)  # 根據語言調整提示
             )
             
             progress_bar.progress(80)
             status_text.text("整理結果...")
+            
+            # 顯示檢測到的語言資訊
+            detected_language = getattr(info, 'language', 'unknown')
+            detected_probability = getattr(info, 'language_probability', 0.0)
+            
+            if detected_language in ['zh', 'en']:
+                lang_name = "中文" if detected_language == 'zh' else "英文"
+                confidence = f"{detected_probability:.1%}" if detected_probability > 0 else "N/A"
+                st.info(f"🔍 檢測到語言: {lang_name} (信心度: {confidence})")
             
             # 收集文字
             transcript_text = " ".join(segment.text for segment in segments)
@@ -383,3 +400,12 @@ class VideoProcessor:
         except Exception as e:
             st.error(f"❌ 轉錄失敗: {e}")
             return False
+    
+    @staticmethod
+    def _get_language_prompt(language):
+        """根據語言返回適當的初始提示"""
+        prompts = {
+            "zh": "以下是中文語音內容：",
+            "en": "The following is English speech content:"
+        }
+        return prompts.get(language, "")
