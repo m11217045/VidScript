@@ -102,4 +102,3 @@ if /i "%choice%"=="Y" (
 )
 
 echo.
-pause

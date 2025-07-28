@@ -6,7 +6,7 @@ import os
 import re
 import glob
 import streamlit as st
-from src.core.config import AUDIO_FILENAME, SUBTITLE_FILENAME, TRANSCRIPT_FILENAME
+from src.core.config import AUDIO_FILENAME, SUBTITLE_FILENAME, TRANSCRIPT_FILENAME, TRANSCRIPTS_FOLDER
 
 
 class FileManager:
@@ -49,6 +49,42 @@ class FileManager:
             return False
     
     @staticmethod
+    def save_transcript(video_title):
+        """將逐字稿保存到指定資料夾，以影片標題命名"""
+        try:
+            # 建立逐字稿資料夾
+            if not os.path.exists(TRANSCRIPTS_FOLDER):
+                os.makedirs(TRANSCRIPTS_FOLDER)
+                st.info(f"📁 已建立逐字稿資料夾: {TRANSCRIPTS_FOLDER}")
+            
+            # 檢查逐字稿檔案是否存在
+            if not os.path.exists(TRANSCRIPT_FILENAME):
+                st.error(f"❌ 找不到逐字稿檔案 {TRANSCRIPT_FILENAME}")
+                return False
+            
+            # 建立目標檔案路徑
+            transcript_filename = f"{video_title}.txt"
+            target_path = os.path.join(TRANSCRIPTS_FOLDER, transcript_filename)
+            
+            # 如果檔案已存在，加上編號
+            counter = 1
+            original_target_path = target_path
+            while os.path.exists(target_path):
+                name, ext = os.path.splitext(original_target_path)
+                target_path = f"{name}_{counter}{ext}"
+                counter += 1
+            
+            # 複製逐字稿檔案
+            import shutil
+            shutil.copy2(TRANSCRIPT_FILENAME, target_path)
+            st.success(f"💾 逐字稿已保存: {target_path}")
+            return True
+            
+        except Exception as e:
+            st.error(f"❌ 保存逐字稿失敗: {e}")
+            return False
+
+    @staticmethod
     def create_empty_prompt_file(prompt_file):
         """建立空的 prompt.txt 檔案供使用者自行定義"""
         try:
@@ -61,16 +97,11 @@ class FileManager:
             return False
     
     @staticmethod
-    def cleanup_files(delete_transcript=True, cookie_file=None):
-        """移除暫存檔案"""
+    def cleanup_files(cookie_file=None):
+        """移除暫存檔案（逐字稿將被保存而不是刪除）"""
         st.write("🧹 步驟 5/6: 清理暫存檔案...")
         
         files_to_remove = [AUDIO_FILENAME, SUBTITLE_FILENAME]
-        
-        if delete_transcript:
-            files_to_remove.append(TRANSCRIPT_FILENAME)
-        else:
-            st.info("ℹ️ 保留逐字稿檔案...")
         
         for filename in files_to_remove:
             try:

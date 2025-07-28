@@ -247,11 +247,46 @@ if errorlevel 1 (
     echo ✅ FFmpeg 可以正常執行
 )
 
-:: 創建 .env 範例檔案
+:: 創建 .env.example 範例檔案
+echo.
+echo 📝 創建 .env.example 範例檔案...
+echo # VidScript 環境變數配置檔案>.env.example
+echo # 複製此檔案為 .env 並填入您的 API Keys>>.env.example
+echo.>>.env.example
+echo # Google Gemini AI API Key>>.env.example
+echo # 請到 https://aistudio.google.com/app/apikey 取得>>.env.example
+echo GOOGLE_API_KEY=your_google_api_key_here>>.env.example
+echo.>>.env.example
+echo # 可選：自訂預設儲存路徑>>.env.example
+echo # DEFAULT_SAVE_PATH=D:\VidScript\reports>>.env.example
+echo.>>.env.example
+echo # 可選：自訂 Whisper 模型>>.env.example
+echo # DEFAULT_WHISPER_MODEL=base>>.env.example
+echo.>>.env.example
+echo # 可選：啟用除錯模式>>.env.example
+echo # DEBUG=false>>.env.example
+
+if exist ".env.example" (
+    echo ✅ .env.example 檔案已創建
+) else (
+    echo ❌ .env.example 檔案創建失敗
+)
+
+:: 檢查並提示使用者創建 .env 檔案
 if not exist ".env" (
     echo.
     echo 💡 請設定 API Keys:
-    echo    編輯 .env 檔案，填入您的 API Keys
+    echo    1. 複製 .env.example 為 .env
+    echo    2. 編輯 .env 檔案，填入您的 Google API Key
+    echo    3. 可到 https://aistudio.google.com/app/apikey 免費取得
+    echo.
+    echo 📋 快速設定指令:
+    echo    copy .env.example .env
+    echo    notepad .env
+) else (
+    echo.
+    echo ✅ 找到現有 .env 檔案
+    echo 💡 請確認已正確設定 GOOGLE_API_KEY
 )
 
 echo.
@@ -260,19 +295,20 @@ echo 🎉 VidScript 環境設置完成！
 echo ==========================================
 echo.
 echo ✅ 已成功安裝：
-echo    � Faster-Whisper 1.1.1 (GPU 優化)
+echo    🚀 Faster-Whisper 1.1.1 (GPU 優化)
 echo    🔥 PyTorch 2.6.0 + CUDA 11.8 (兼容性驗證)
 echo    🧠 Google Gemini AI
 echo    🖥️ Streamlit 網頁界面
-echo    🛠️ 所有必要工具和依賴
+echo    � .env.example 配置範例檔案
+echo    �🛠️ 所有必要工具和依賴
 echo.
 echo 🚀 性能提升：
 echo    ⚡ 語音轉文字速度：7-40x 加速
 echo    💾 VRAM 使用：極度優化
 echo    🎯 GPU 支援：完全啟用
 echo.
-echo �💡 接下來請：
-echo    1. 確保已設定 .env 檔案中的 Google API Key
+echo 💡 接下來請：
+echo    1. 複製 .env.example 為 .env 並填入您的 Google API Key
 echo    2. 執行 Setup_AutoStart.bat 啟動程式
 echo    3. 享受超快的影片分析體驗！
 echo.

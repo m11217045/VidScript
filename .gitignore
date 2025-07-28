@@ -11,7 +11,7 @@ __pycache__/
 
 # Environment variables
 .env
-
+saved_transcripts/
 # Large binary files
 _internal/
 *.exe
@@ -47,16 +47,4 @@ youtube_report.txt
 
 # Package files
 *.zip
-
-# Prevent duplicate files in root directory
-# These should be in src/ folders instead
-/ai_service.py
-/app_streamlit.py
-/app_streamlit_new.py
-/business_logic.py
-/config.py
-/file_manager.py
-/test_modules.py
-/video_processor.py
-/修復.bat
-/README_MODULES.md
+workspace.code-workspace
