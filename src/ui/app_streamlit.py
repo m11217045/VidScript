@@ -1,5 +1,5 @@
 """
-YouTube 財經報告生成器 v1.0.0
+YouTube 財經報告生成器
 主程式入口點 - 使用模組化架構
 """
 import os
@@ -12,6 +12,17 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(current_dir))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# 導入版本資訊
+try:
+    from version import get_app_title, get_full_version, APP_DESCRIPTION
+except ImportError:
+    # 如果無法導入版本模組，使用預設值
+    def get_app_title():
+        return "📊 YouTube 財經報告生成器 v1.2.0"
+    def get_full_version():
+        return "v1.2.0"
+    APP_DESCRIPTION = "使用 AI 技術將 YouTube 財經影片轉換為結構化報告"
 
 # 導入自定義模組
 from src.core.config import AI_PROVIDERS, WHISPER_MODELS, LANGUAGE_OPTIONS
@@ -33,14 +44,14 @@ load_dotenv()
 def main():
     """主應用程式"""
     st.set_page_config(
-        page_title="YouTube 財經報告生成器",
+        page_title=get_app_title().replace("📊 ", ""),
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    st.title("📊 YouTube 財經報告生成器 v1.0.0")
-    st.markdown("使用 AI 技術將 YouTube 財經影片轉換為結構化報告")
+    st.title(get_app_title())
+    st.markdown(APP_DESCRIPTION)
     
     # 側邊欄設定
     with st.sidebar:
@@ -68,7 +79,7 @@ def main():
         # AI 設定
         st.subheader("🤖 AI 設定")
         ai_provider = st.selectbox(
-            "選擇 AI 提供商",
+            "選擇 AI 模型",
             list(AI_PROVIDERS.keys()),
             index=0
         )
@@ -82,15 +93,17 @@ def main():
             help="輸入您的 AI API Key"
         )
         
-        # Cookie 檔案上傳
-        st.subheader("🍪 Cookie 檔案 (選填)")
-        cookie_file = st.file_uploader(
-            "上傳 Cookie 檔案",
-            type=['txt'],
-            help="用於存取需要登入的影片"
-        )
+        # 顯示逐字稿保存資訊
+        st.info("💾 逐字稿將自動保存到 saved_transcripts 資料夾")
         
-        # 處理選項
+        # 固定儲存路徑到 main.py 所在目錄
+        save_path = project_root
+    
+    # 主要內容區域
+    col1, col2 = st.columns([2, 1])
+    
+    with col2: 
+        # 移動的處理選項到右側
         st.subheader("🔧 處理選項")
         
         # Faster-Whisper 模型選擇
@@ -110,35 +123,16 @@ def main():
             help="建議使用自動檢測，系統會智慧識別中文或英文內容"
         )
         language = LANGUAGE_OPTIONS[language_display]
-        
-        # 顯示逐字稿保存資訊
-        st.info("💾 逐字稿將自動保存到 saved_transcripts 資料夾")
-        
-        # 儲存路徑
-        try:
-            default_save_path = os.path.dirname(os.path.abspath(__file__))
-            if not default_save_path:
-                default_save_path = os.getcwd()
-        except Exception:
-            default_save_path = os.getcwd()
-            
-        save_path = st.text_input(
-            "報告儲存路徑",
-            value=default_save_path,
-            help="報告檔案的儲存位置"
+
+        # Cookie 檔案上傳
+        st.write("**🍪 Cookie 檔案 (選填)**")
+        cookie_file = st.file_uploader(
+            "上傳 Cookie 檔案",
+            type=['txt'],
+            help="用於存取需要登入的影片",
+            key="cookie_file_uploader"
         )
-        
-        # 確保路徑有效
-        if not save_path or (isinstance(save_path, str) and save_path.strip() == ""):
-            save_path = default_save_path
-            
-        # 最終安全檢查
-        if not save_path:
-            save_path = os.getcwd()
-    
-    # 主要內容區域
-    col1, col2 = st.columns([2, 1])
-    
+
     with col1:
         st.subheader("📄 內容來源選擇")
         
@@ -222,6 +216,9 @@ def main():
                     # 獲取選中的 prompt
                     selected_prompt_content = prompt_manager.get_prompt_content(selected_prompt)
                     
+                    # 獲取選擇的 AI 模型
+                    selected_ai_model = AI_PROVIDERS[ai_provider]
+                    
                     # 開始處理
                     BusinessLogic.process_video(
                         youtube_url.strip(),
@@ -230,7 +227,8 @@ def main():
                         cookie_path,
                         whisper_model,
                         selected_prompt_content,
-                        language
+                        language,
+                        selected_ai_model
                     )
             else:
                 # 檢查是否有逐字稿輸入
@@ -249,6 +247,9 @@ def main():
                     # 獲取選中的 prompt
                     selected_prompt_content = prompt_manager.get_prompt_content(selected_prompt)
                     
+                    # 獲取選擇的 AI 模型
+                    selected_ai_model = AI_PROVIDERS[ai_provider]
+                    
                     # 根據來源處理逐字稿
                     if transcript_source == "上傳新檔案":
                         # 處理上傳的檔案
@@ -256,7 +257,8 @@ def main():
                             transcript_file,
                             api_key.strip(),
                             save_path,
-                            selected_prompt_content
+                            selected_prompt_content,
+                            selected_ai_model
                         )
                     else:
                         # 處理已保存的逐字稿
@@ -264,30 +266,9 @@ def main():
                             selected_saved_transcript,
                             api_key.strip(),
                             save_path,
-                            selected_prompt_content
+                            selected_prompt_content,
+                            selected_ai_model
                         )
-    
-    with col2:
-        st.subheader("📋 使用說明")
-        st.markdown("""
-        ### 步驟：
-        1. **選擇專家**: 在左側選擇適合的分析專家
-        2. **設定 AI**: 選擇 AI 提供商並輸入 API Key
-        3. **選擇輸入方式**: 
-           - **YouTube 影片**: 貼上影片連結自動提取內容
-           - **逐字稿檔案**: 上傳新檔案或選擇已保存的逐字稿
-        4. **選填設定**: 上傳 Cookie 檔案（YouTube模式需要時）
-        5. **開始處理**: 點擊生成報告按鈕
-        
-        ### 功能特色：
-        - 🎯 **雙重輸入模式**: YouTube影片 + 逐字稿檔案
-        - 🎤 **語音轉文字**: Faster-Whisper (VRAM 優化)
-        - 🤖 **AI 潤飾**: 支援 Gemini 進行專業報告生成
-        - ⚡ **GPU 加速**: 自動檢測 CUDA 支援
-        - 📄 **專業報告**: 依專家類型產生結構化報告
-        - 💾 **自動保存**: 逐字稿以YouTube標題命名保存至 saved_transcripts 資料夾
-        - � **逐字稿重用**: 可選擇之前保存的逐字稿重新分析
-        """)
 
 
 if __name__ == "__main__":

@@ -13,28 +13,28 @@ class AIService:
     """AI 服務管理器"""
     
     @staticmethod
-    def call_gemini_api(prompt, api_key, output_filename):
+    def call_gemini_api(prompt, api_key, output_filename, model_name="gemini-2.0-flash-exp"):
         """調用 Google Gemini API"""
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel(model_name)
             
             response = model.generate_content(prompt)
             if not response.parts:
                 block_reason = response.prompt_feedback.block_reason if response.prompt_feedback else "未知"
-                st.error(f"❌ Gemini 模型因故未生成任何內容。原因: {block_reason}")
+                st.error(f"❌ Gemini 模型 ({model_name}) 因故未生成任何內容。原因: {block_reason}")
                 return False
 
             with open(output_filename, "w", encoding="utf-8") as f:
                 f.write(response.text)
-            st.success(f"✅ 報告已成功由 Gemini 生成並儲存為 {output_filename}")
+            st.success(f"✅ 報告已成功由 Gemini ({model_name}) 生成並儲存為 {output_filename}")
             return True
         except Exception as e:
-            st.error(f"❌ Gemini API 呼叫失敗: {e}")
+            st.error(f"❌ Gemini API ({model_name}) 呼叫失敗: {e}")
             return False
     
     @staticmethod
-    def refine_with_ai(report_output_filename, api_key, custom_prompt=None):
+    def refine_with_ai(report_output_filename, api_key, custom_prompt=None, model_name="gemini-2.0-flash-exp"):
         """使用 AI 生成報告"""
         st.write("🤖 步驟 4/6: 開始使用 AI 潤飾報告...")
         
@@ -75,7 +75,7 @@ class AIService:
             else:
                 final_prompt = prompt_template + "\n\n影片內容逐字稿：\n" + transcript_text
             
-            return AIService.call_gemini_api(final_prompt, api_key, report_output_filename)
+            return AIService.call_gemini_api(final_prompt, api_key, report_output_filename, model_name)
                 
         except Exception as e:
             st.error(f"❌ AI API 呼叫失敗: {e}")

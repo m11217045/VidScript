@@ -15,7 +15,7 @@ class BusinessLogic:
     """業務邏輯處理器"""
     
     @staticmethod
-    def process_video(youtube_url, api_key, save_path, cookie_file=None, whisper_model="base", custom_prompt=None, language="zh"):
+    def process_video(youtube_url, api_key, save_path, cookie_file=None, whisper_model="base", custom_prompt=None, language="zh", ai_model="gemini-2.0-flash-exp"):
         """處理影片的主要邏輯 (自動保存逐字稿模式)"""
         
         with st.container():
@@ -53,7 +53,7 @@ class BusinessLogic:
                         
                         # 進行AI修飾
                         st.write("🤖 步驟 5/7: AI 修飾報告...")
-                        if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                        if AIService.refine_with_ai(final_report_path, api_key, custom_prompt, ai_model):
                             success = True
                 else:
                     # 如果沒有字幕，則使用語音轉文字
@@ -73,7 +73,7 @@ class BusinessLogic:
                             
                             # 進行AI修飾
                             st.write("🤖 步驟 5/7: AI 修飾報告...")
-                            if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                            if AIService.refine_with_ai(final_report_path, api_key, custom_prompt, ai_model):
                                 success = True
             
             except Exception as e:
@@ -107,7 +107,7 @@ class BusinessLogic:
             return BusinessLogic._display_results(success, final_report_path)
     
     @staticmethod
-    def process_transcript_file(transcript_file, api_key, save_path, custom_prompt=None):
+    def process_transcript_file(transcript_file, api_key, save_path, custom_prompt=None, ai_model="gemini-2.0-flash-exp"):
         """處理上傳的逐字稿檔案（自動保存逐字稿）"""
         
         with st.container():
@@ -145,7 +145,7 @@ class BusinessLogic:
                 
                 # 進行AI修飾
                 st.write("🤖 步驟 3/5: AI 修飾報告...")
-                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt, ai_model):
                     success = True
             
             except Exception as e:
@@ -176,7 +176,7 @@ class BusinessLogic:
             return BusinessLogic._display_results(success, final_report_path)
     
     @staticmethod
-    def process_saved_transcript(transcript_filename, api_key, save_path, custom_prompt=None):
+    def process_saved_transcript(transcript_filename, api_key, save_path, custom_prompt=None, ai_model="gemini-2.0-flash-exp"):
         """處理已保存的逐字稿檔案"""
         
         with st.container():
@@ -220,7 +220,7 @@ class BusinessLogic:
                 
                 # 進行AI修飾
                 st.write("🤖 步驟 2/4: AI 重新分析報告...")
-                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt):
+                if AIService.refine_with_ai(final_report_path, api_key, custom_prompt, ai_model):
                     success = True
             
             except Exception as e:

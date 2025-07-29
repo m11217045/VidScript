@@ -9,6 +9,11 @@ __pycache__/
 .coverage
 .pytest_cache/
 
+# 版本管理檔案（這些應該被追蹤）
+# version.py
+# CHANGELOG.md
+# setup.py
+
 # Environment variables
 .env
 saved_transcripts/
@@ -48,3 +53,7 @@ youtube_report.txt
 # Package files
 *.zip
 workspace.code-workspace
+
+# Prompts - 只保留通用分析師.txt，其他都不上傳
+prompts/*
+!prompts/通用分析師.txt

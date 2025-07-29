@@ -15,7 +15,9 @@ TRANSCRIPTS_FOLDER = "saved_transcripts"
 
 # AI 模型選項
 AI_PROVIDERS = {
-    "Gemini": "gemini"
+    "gemini-2.5-pro": "gemini-2.5-pro",
+    "gemini-2.5-flash": "gemini-2.5-flash",
+    "gemini-2.5-flash-lite": "gemini-2.5-flash-lite"
 }
 
 # Faster-Whisper 模型選項（針對 VRAM 優化）
