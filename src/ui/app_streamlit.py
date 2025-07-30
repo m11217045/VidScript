@@ -79,10 +79,20 @@ def main():
         # AI 設定
         st.subheader("🤖 AI 設定")
         ai_provider = st.selectbox(
-            "選擇 AI 模型",
+            "選擇 Gemini 模型版本",
             list(AI_PROVIDERS.keys()),
-            index=0
+            index=0,
+            help="Pro: 最佳品質但較慢，Flash: 平衡性能，Flash Lite: 最快但基礎功能"
         )
+        
+        # 顯示選擇的模型資訊
+        selected_model_value = AI_PROVIDERS[ai_provider]
+        if "pro" in selected_model_value:
+            st.success(f"🚀 已選擇: {selected_model_value} (最高品質)")
+        elif "flash-lite" in selected_model_value:
+            st.info(f"⚡ 已選擇: {selected_model_value} (最快速度)")
+        else:
+            st.info(f"⚖️ 已選擇: {selected_model_value} (平衡模式)")
         
         # API Key 設定
         default_api_key = os.getenv("GOOGLE_API_KEY", "")

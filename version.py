@@ -10,7 +10,7 @@ VidScript 版本管理模組
 """
 
 # 版本資訊 - 單一真相來源
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 __version_info__ = tuple(map(int, __version__.split(".")))
 
 # 詳細版本資訊
@@ -71,10 +71,11 @@ def compare_version(other_version):
 
 # 版本發布資訊
 RELEASE_NOTES = {
-    "1.3.0": [
-        "新增批次處理功能",
-        "支援多檔案上傳",
-        "改進用戶介面"
+    "1.2.2": [
+        "新增 Gemini 模型版本選擇功能",
+        "支援 Gemini 2.5 Pro/Flash/Flash Lite 三種版本",
+        "改進 AI 模型選擇介面，增加詳細說明",
+        "更新默認模型為 Gemini 2.5 Flash"
     ],
     "1.2.1": [
         "修復音訊處理錯誤",

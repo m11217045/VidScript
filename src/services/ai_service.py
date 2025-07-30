@@ -13,7 +13,7 @@ class AIService:
     """AI 服務管理器"""
     
     @staticmethod
-    def call_gemini_api(prompt, api_key, output_filename, model_name="gemini-2.0-flash-exp"):
+    def call_gemini_api(prompt, api_key, output_filename, model_name="gemini-2.5-flash"):
         """調用 Google Gemini API"""
         try:
             genai.configure(api_key=api_key)
@@ -34,7 +34,7 @@ class AIService:
             return False
     
     @staticmethod
-    def refine_with_ai(report_output_filename, api_key, custom_prompt=None, model_name="gemini-2.0-flash-exp"):
+    def refine_with_ai(report_output_filename, api_key, custom_prompt=None, model_name="gemini-2.5-flash"):
         """使用 AI 生成報告"""
         st.write("🤖 步驟 4/6: 開始使用 AI 潤飾報告...")
         
